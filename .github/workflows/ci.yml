@@ -1,0 +1,49 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake build-essential \
+            libeigen3-dev libopencv-dev libboost-all-dev \
+            libtbb-dev libsuitesparse-dev
+
+      - name: Cache GTSAM
+        id: gtsam-cache
+        uses: actions/cache@v4
+        with:
+          path: /usr/local
+          key: gtsam-4.2.0-${{ runner.os }}
+
+      - name: Build GTSAM
+        if: steps.gtsam-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch 4.2.0 https://github.com/borglab/gtsam.git
+          cd gtsam && mkdir build && cd build
+          cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+                   -DCMAKE_BUILD_TYPE=Release \
+                   -DGTSAM_BUILD_EXAMPLES_ALWAYS=OFF \
+                   -DGTSAM_BUILD_TESTS=OFF \
+                   -DGTSAM_WITH_TBB=ON
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+
+      - name: Configure
+        run: cmake -B build -DVIO_BUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

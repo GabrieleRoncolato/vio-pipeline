@@ -1,0 +1,15 @@
+%YAML:1.0
+---
+data:
+  dataset_path: "../data/machine_hall/MH_01_easy"
+
+pipeline:
+  tracker:
+    max_features: 200
+    fast_threshold: 20
+  estimator:
+    ransac_threshold: 1.5
+    ransac_prob: 0.99
+  backend:
+    imu_accel_noise: 0.01
+    imu_gyro_noise: 0.001

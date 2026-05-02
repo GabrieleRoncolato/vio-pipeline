@@ -1,28 +1,23 @@
 #pragma once
 
 #include <string>
+#include <variant>
 
-struct TrackerConfig{
-    int max_features;
-    int fast_threshold;
+struct FastConfig {
+    int threshold;
 };
 
-struct EstimatorConfig{
-    double ransac_threshold;
-    double ransac_prob;
+using DetectorConfig = std::variant<FastConfig>;
+
+struct FrontendConfig {
+    DetectorConfig detector_config;
 };
 
-struct BackendConfig{
-    double imu_accel_noise;
-    double imu_gyro_noise;
-};
-
-struct Config{
+struct Config {
     std::string dataset_path;
-    TrackerConfig tracker;
-    EstimatorConfig estimator;
-    BackendConfig backend;
+    
+    FrontendConfig frontend_config;
 
-    static Config fromYaml(const std::string& path);
-    static Config fromYamlString(const std::string& yaml_content);
+    static Config from_yaml(const std::string& path);
+    static Config from_yaml_string(const std::string& yaml_content);
 };

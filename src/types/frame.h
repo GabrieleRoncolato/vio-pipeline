@@ -5,6 +5,6 @@
 
 struct Frame{
     int64_t timestamp;
-    cv::Mat right_image;
     cv::Mat left_image;
+    cv::Mat right_image;
 };

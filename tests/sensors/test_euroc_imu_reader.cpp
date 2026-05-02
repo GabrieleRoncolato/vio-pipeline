@@ -42,8 +42,9 @@ private:
 
 TEST_F(EurocImuReaderTest, ReadsAllSamples) {
     EurocImuReader imu_reader(tmp_root.string());
+    imu_reader.open();
 
-    int samples_read = 0;
+    size_t samples_read = 0;
     while(imu_reader.is_open()){
         auto imu_sample = imu_reader.read_next();
 
@@ -52,7 +53,7 @@ TEST_F(EurocImuReaderTest, ReadsAllSamples) {
         EXPECT_DOUBLE_EQ(imu_sample->accel_x, 0.0);
         EXPECT_EQ(imu_sample->timestamp, samples_read);
 
-        samples_read++;
+        ++samples_read;
     }
 
     EXPECT_EQ(samples_read, mock_data_length);
@@ -60,6 +61,7 @@ TEST_F(EurocImuReaderTest, ReadsAllSamples) {
 
 TEST_F(EurocImuReaderTest, ReturnsNulloptAfterExhaustion) {
     EurocImuReader imu_reader(tmp_root.string());
+    imu_reader.open();
 
     while(imu_reader.is_open()){
         imu_reader.read_next();
@@ -68,12 +70,27 @@ TEST_F(EurocImuReaderTest, ReturnsNulloptAfterExhaustion) {
     EXPECT_EQ(imu_reader.read_next(), std::nullopt);
 }
 
-TEST(EurocImuReader, HandlesMissingDataset) {
-    testing::internal::CaptureStderr();
-    EurocImuReader imu_reader("/invalid/dataset/path");
-    std::string stderr_output = testing::internal::GetCapturedStderr();
+TEST_F(EurocImuReaderTest, ThrowsOnMalformedGyroValue) {
+    {
+        std::ofstream imu_csv(tmp_root / "mav0/imu0/data.csv", std::ios::app);
+        imu_csv << "999, not_double, 0.0, 0.0, 0.0, 0.0, 0.0\n";
+    }
 
-    EXPECT_FALSE(imu_reader.is_open());
-    EXPECT_EQ(imu_reader.read_next(), std::nullopt);
-    EXPECT_NE(stderr_output.find("/invalid/dataset/path"), std::string::npos);
+    EurocImuReader reader(tmp_root.string());
+    EXPECT_THROW(reader.open(), std::runtime_error);
+}
+
+TEST_F(EurocImuReaderTest, ThrowsOnShortRow) {
+    {
+        std::ofstream imu_csv(tmp_root / "mav0/imu0/data.csv", std::ios::app);
+        imu_csv << "999, 0.0, 0.0, 0.0\n";
+    }
+
+    EurocImuReader reader(tmp_root.string());
+    EXPECT_THROW(reader.open(), std::runtime_error);
+}
+
+TEST(EurocImuReader, ThrowsOnMissingDataset) {
+    EurocImuReader imu_reader("/invalid/dataset/path");
+    EXPECT_THROW(imu_reader.open(), std::runtime_error);
 }

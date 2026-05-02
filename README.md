@@ -6,7 +6,7 @@ A Visual-Inertial Odometry pipeline targeting the [EuRoC MAV dataset](https://pr
 
 ## Dependencies
 
-- CMake ≥ 3.21, C++17 toolchain
+- CMake ≥ 3.30, C++17 toolchain
 - Eigen3, OpenCV 4, Boost (program_options), TBB, SuiteSparse
 - [GTSAM 4.2](https://github.com/borglab/gtsam) (built from source)
 - GoogleTest
@@ -19,7 +19,7 @@ On Ubuntu 22.04, run the installation script from the repo root:
 ./scripts/install_deps.sh
 ```
 
-This installs system packages, builds GTSAM 4.2 from source, installs analysis tools, and downloads the EuRoC MH_01 dataset into `data/` when missing.
+This installs CMake 3.30, system packages, builds GTSAM 4.2 from source, installs analysis tools, and downloads the EuRoC MH_01 dataset into `data/` when missing.
 
 ## Build
 
@@ -49,9 +49,11 @@ Set `-DVIO_BUILD_TESTING=OFF` when running `cmake` if you only want the executab
 
 ```
 src/
-├── types/      data types
+├── frontend/   detection/tracking interfaces
+├── pipeline/   top-level orchestration
 ├── sensors/    camera/IMU interfaces
-└── pipeline/   top-level orchestration
+├── types/      data types
+└── utils/      utilities
 
 tests/          unit tests
 configs/        configuration files

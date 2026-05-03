@@ -4,19 +4,56 @@
 
 namespace {
 
+template<typename T>
+T read_required(const cv::FileNode& n, const char* key){
+    auto sub = n[key];
+    if(sub.empty())
+        throw std::runtime_error(std::string("Missing required config key: ") + key);
+    return (T)sub;
+}
+
+cv::FileNode read_section(const cv::FileNode& n, const char* key){
+    auto sub = n[key];
+    if(sub.empty())
+        throw std::runtime_error(std::string("Missing required config section: ") + key);
+    return sub;
+}
+
+DetectorConfig parse_detector(cv::FileNode node){
+    auto type = read_required<std::string>(node, "type");
+
+    if(type == "fast"){
+        FastConfig c;
+        c.threshold    = read_required<int>(node, "threshold");
+        return c;
+    }
+
+    throw std::runtime_error("Unknown detector type: " + type);
+}
+
+FrontendConfig parse_frontend(cv::FileNode node){
+    FrontendConfig frontend_config;
+    
+    auto detector = read_section(node, "detector");
+    frontend_config.detector_config = parse_detector(detector);
+    
+    return frontend_config;
+}
+
 Config parse(cv::FileStorage& fs){
     Config config;
-    config.dataset_path = (std::string)fs["data"]["dataset_path"];
-    config.tracker.max_features = (int)fs["pipeline"]["tracker"]["max_features"];
-    config.tracker.fast_threshold = (int)fs["pipeline"]["tracker"]["fast_threshold"];
-    config.estimator.ransac_threshold = (double)fs["pipeline"]["estimator"]["ransac_threshold"];
-    config.estimator.ransac_prob = (double)fs["pipeline"]["estimator"]["ransac_prob"];
-    config.backend.imu_accel_noise = (double)fs["pipeline"]["backend"]["imu_accel_noise"];
-    config.backend.imu_gyro_noise = (double)fs["pipeline"]["backend"]["imu_gyro_noise"];
+    
+    auto data = read_section(fs.root(), "data");
+    config.dataset_path = read_required<std::string>(data, "dataset_path");
+
+    auto pipeline = read_section(fs.root(), "pipeline");
+    auto frontend = read_section(pipeline, "frontend");
+    config.frontend_config = parse_frontend(frontend);
+
     return config;
 }
 
-cv::FileStorage openFileStorage(const std::string& source, int flags, const std::string& context){
+cv::FileStorage open_file_storage(const std::string& source, int flags, const std::string& context){
     cv::FileStorage fs;
 
     try{
@@ -32,10 +69,10 @@ cv::FileStorage openFileStorage(const std::string& source, int flags, const std:
     return fs;
 }
 
-}
+} // namespace
 
-Config Config::fromYaml(const std::string& path){
-    cv::FileStorage fs = openFileStorage(
+Config Config::from_yaml(const std::string& path){
+    cv::FileStorage fs = open_file_storage(
         path, 
         cv::FileStorage::READ, 
         "Config file not found or unreadable: " + path
@@ -43,8 +80,8 @@ Config Config::fromYaml(const std::string& path){
     return parse(fs);
 }
 
-Config Config::fromYamlString(const std::string& yaml_content){
-    cv::FileStorage fs = openFileStorage(
+Config Config::from_yaml_string(const std::string& yaml_content){
+    cv::FileStorage fs = open_file_storage(
         yaml_content, 
         cv::FileStorage::READ | cv::FileStorage::MEMORY,
         "Failed to parse YAML string"

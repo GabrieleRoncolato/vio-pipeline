@@ -24,3 +24,7 @@ add_vio_test(test_euroc_imu_reader
     sensors/test_euroc_imu_reader.cpp
     vio_sensors
 )
+add_vio_test(test_detector_factory
+    frontend/detection/test_detector_factory.cpp
+    vio_frontend
+)

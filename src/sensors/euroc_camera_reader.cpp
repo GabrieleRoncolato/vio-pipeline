@@ -3,23 +3,22 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <stdexcept>
 
 EurocCameraReader::EurocCameraReader(const std::string& dataset_path)
-    : current_index(0)
-{
-    load_entries(dataset_path);
-}
+    : current_index_(0),
+      dataset_path_(dataset_path)
+{}
 
-void EurocCameraReader::load_entries(const std::string& dataset_path) {
-    std::string csv_left = dataset_path + "/mav0/cam0/data.csv";
-    std::string csv_right = dataset_path + "/mav0/cam1/data.csv";
+void EurocCameraReader::open() {
+    std::string csv_left = dataset_path_ + "/mav0/cam0/data.csv";
+    std::string csv_right = dataset_path_ + "/mav0/cam1/data.csv";
 
     std::ifstream f_left(csv_left);
     std::ifstream f_right(csv_right);
 
     if(!f_left.is_open() || !f_right.is_open()){
-        std::cerr << "Failed to open camera CSVs at: " << dataset_path << "\n";
-        return;
+        throw std::runtime_error("Failed to open camera CSVs at: " + dataset_path_);
     }
 
     std::string line_left, line_right;
@@ -27,8 +26,23 @@ void EurocCameraReader::load_entries(const std::string& dataset_path) {
     // skip header lines
     std::getline(f_left, line_left);
     std::getline(f_right, line_right);
+    size_t line_idx = 1;
 
-    while(std::getline(f_left, line_left) && std::getline(f_right, line_right)){
+    while(true){
+        bool got_left  = static_cast<bool>(std::getline(f_left, line_left));
+        bool got_right = static_cast<bool>(std::getline(f_right, line_right));
+
+        if(!got_left && !got_right) break;
+        if(got_left != got_right){
+            throw std::runtime_error(
+                "Camera CSV row counts differ between " + csv_left + " and " + csv_right
+            );
+        }
+
+        if(!line_left.empty()  && line_left.back()  == '\r') line_left.pop_back();
+        if(!line_right.empty() && line_right.back() == '\r') line_right.pop_back();
+
+        ++line_idx;
         std::stringstream ss_left(line_left);
         std::string timestamp_str, filename_left, filename_right;
 
@@ -42,24 +56,35 @@ void EurocCameraReader::load_entries(const std::string& dataset_path) {
 
         CameraEntry entry;
 
-        // parse as nanoseconds
-        entry.timestamp = std::stoll(timestamp_str);
+        try{
+            // parse as nanoseconds
+            entry.timestamp = std::stoll(timestamp_str);
 
-        entry.left_path = dataset_path + "/mav0/cam0/data/" + filename_left;
-        entry.right_path = dataset_path + "/mav0/cam1/data/" + filename_right;
+            entry.left_path = dataset_path_ + "/mav0/cam0/data/" + filename_left;
+            entry.right_path = dataset_path_ + "/mav0/cam1/data/" + filename_right;
 
-        entries.push_back(entry);
+            entries_.push_back(entry);
+        } catch (const std::exception& e){
+            throw std::runtime_error(
+                "Malformed line " + std::to_string(line_idx) + 
+                " in " + csv_left + " (" + e.what() + "): " + line_left
+            );
+        }
+    }
+    
+    if(std::getline(f_left, line_left) || std::getline(f_right, line_right)){
+        throw std::runtime_error("Camera CSV row counts differ between " + csv_left + " and " + csv_right);
     }
 
-    std::cout << "Loaded " << entries.size() << " stereo pairs\n";
+    std::cout << "Loaded " << entries_.size() << " stereo pairs\n";
 }
 
 std::optional<Frame> EurocCameraReader::read_next() {
-    if(current_index >= entries.size()){
+    if(current_index_ >= entries_.size()){
         return std::nullopt;
     }
 
-    const auto& entry = entries[current_index++];
+    const auto& entry = entries_[current_index_++];
 
     Frame frame;
     frame.timestamp = entry.timestamp;
@@ -67,13 +92,12 @@ std::optional<Frame> EurocCameraReader::read_next() {
     frame.right_image = cv::imread(entry.right_path, cv::IMREAD_GRAYSCALE);
 
     if(frame.left_image.empty() || frame.right_image.empty()){
-        std::cerr << "Failed to load images at index: " << current_index << "\n";
-        return std::nullopt;
+        throw std::runtime_error("Failed to open camera image at frame index: " + std::to_string(current_index_));
     }
 
     return frame;
 }
 
 bool EurocCameraReader::is_open() const {
-    return current_index < entries.size();
+    return current_index_ < entries_.size();
 }

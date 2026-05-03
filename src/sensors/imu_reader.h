@@ -6,5 +6,6 @@ class ImuReader {
 public:
     virtual ~ImuReader() = default;
     virtual std::optional<ImuSample> read_next() = 0;
+    virtual void open() = 0;
     virtual bool is_open() const = 0;
 };

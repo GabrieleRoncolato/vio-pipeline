@@ -16,12 +16,29 @@ log(){
     echo "==> $*"
 }
 
+install_recent_cmake(){
+    if command -v cmake >/dev/null && \
+       dpkg --compare-versions "$(cmake --version | head -n1 | awk '{print $3}')" ge 3.30; then
+        log "CMake $(cmake --version | head -n1 | awk '{print $3}') already installed, skipping."
+        return
+    fi
+    log "Installing CMake ≥ 3.30 from Kitware apt repo..."
+    sudo apt-get install -y ca-certificates gpg wget
+    wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc \
+        | gpg --dearmor \
+        | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+    UBUNTU_CODENAME="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+    echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ ${UBUNTU_CODENAME} main" \
+        | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
+    sudo apt-get update
+    sudo apt-get install -y cmake
+}
+
 install_apt_deps(){
     log "Installing apt packages..."
     sudo apt-get update
     sudo apt-get install -y \
         build-essential \
-        cmake \
         git \
         wget \
         unzip \
@@ -85,6 +102,7 @@ download_dataset(){
 }
 
 main(){
+    install_recent_cmake
     install_apt_deps
     build_gtsam
     install_python_tools

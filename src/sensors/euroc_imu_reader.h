@@ -10,11 +10,11 @@ public:
     EurocImuReader(const std::string& dataset_path);
 
     std::optional<ImuSample> read_next() override;
+    void open() override;
     bool is_open() const override;
     
 private:
-    std::vector<ImuSample> entries;
-    size_t current_index;
-
-    void load_entries(const std::string& dataset_path);
+    std::string dataset_path_;
+    std::vector<ImuSample> entries_;
+    size_t current_index_;
 };

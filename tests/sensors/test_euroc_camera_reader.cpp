@@ -52,6 +52,7 @@ private:
 
 TEST_F(EurocCameraReaderTest, ReadsAllFrames) {
     EurocCameraReader camera_reader(tmp_root.string());
+    camera_reader.open();
 
     int frames_read = 0;
     while(camera_reader.is_open()){
@@ -62,7 +63,7 @@ TEST_F(EurocCameraReaderTest, ReadsAllFrames) {
         EXPECT_FALSE(frame->left_image.empty());
         EXPECT_FALSE(frame->right_image.empty());
 
-        frames_read++;
+        ++frames_read;
     }
 
     EXPECT_EQ(frames_read, mock_data_length);
@@ -70,6 +71,7 @@ TEST_F(EurocCameraReaderTest, ReadsAllFrames) {
 
 TEST_F(EurocCameraReaderTest, ReturnsNulloptAfterExhaustion) {
     EurocCameraReader camera_reader(tmp_root.string());
+    camera_reader.open();
 
     while(camera_reader.is_open()){
         camera_reader.read_next();
@@ -78,12 +80,39 @@ TEST_F(EurocCameraReaderTest, ReturnsNulloptAfterExhaustion) {
     EXPECT_EQ(camera_reader.read_next(), std::nullopt);
 }
 
-TEST(EurocCameraReader, HandlesMissingDataset) {
-    testing::internal::CaptureStderr();
-    EurocCameraReader camera_reader("/invalid/dataset/path");
-    std::string stderr_output = testing::internal::GetCapturedStderr();
+TEST_F(EurocCameraReaderTest, ThrowsOnMalformedTimestamp) {
+    {
+        std::ofstream cam0_csv(tmp_root / "mav0/cam0/data.csv", std::ios::app);
+        std::ofstream cam1_csv(tmp_root / "mav0/cam1/data.csv", std::ios::app);
+        cam0_csv << "not_timestamp,0.png\n";
+        cam1_csv << "0,0.png\n";
+    }
 
-    EXPECT_FALSE(camera_reader.is_open());
-    EXPECT_EQ(camera_reader.read_next(), std::nullopt);
-    EXPECT_NE(stderr_output.find("/invalid/dataset/path"), std::string::npos);
+    EurocCameraReader camera_reader(tmp_root.string());
+    EXPECT_THROW(camera_reader.open(), std::runtime_error);
+}
+
+TEST_F(EurocCameraReaderTest, ThrowsOnRowCountMismatch) {
+    {
+        std::ofstream cam0_csv(tmp_root / "mav0/cam0/data.csv", std::ios::app);
+        cam0_csv << "999,extra.png";
+    }
+
+    EurocCameraReader camera_reader(tmp_root.string());
+    EXPECT_THROW(camera_reader.open(), std::runtime_error);
+}
+
+TEST_F(EurocCameraReaderTest, ThrowsOnMissingImage) {
+    fs::remove(tmp_root / "mav0/cam0/data/1.png");
+
+    EurocCameraReader camera_reader(tmp_root.string());
+    camera_reader.open();
+
+    camera_reader.read_next();
+    EXPECT_THROW(camera_reader.read_next(), std::runtime_error);
+}
+
+TEST(EurocCameraReader, ThrowsOnMissingDataset) {
+    EurocCameraReader camera_reader("/invalid/dataset/path");
+    EXPECT_THROW(camera_reader.open(), std::runtime_error);
 }

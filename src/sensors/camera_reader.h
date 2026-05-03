@@ -7,5 +7,6 @@ class CameraReader {
 public:
     virtual ~CameraReader() = default;
     virtual std::optional<Frame> read_next() = 0;
+    virtual void open() = 0;
     virtual bool is_open() const = 0;
 };

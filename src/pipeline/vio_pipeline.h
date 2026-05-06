@@ -4,6 +4,7 @@
 #include "sensors/camera_reader.h"
 #include "sensors/imu_reader.h"
 #include "frontend/frontend.h"
+#include "types/config.h"
 
 class VIOPipeline {
 private:

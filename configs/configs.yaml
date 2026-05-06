@@ -7,5 +7,11 @@ pipeline:
   frontend:
     detector:
       type: fast
-      max_features: 200
       threshold: 20
+    selector:
+      type: bucketer
+      image_width: 752
+      image_height: 480
+      cell_width: 47 # 16 columns
+      cell_height: 48 # 10 rows
+      keypoints_per_cell: 5

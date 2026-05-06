@@ -1,8 +1,8 @@
 #include "pipeline/vio_pipeline.h"
 #include "sensors/euroc_camera_reader.h"
 #include "sensors/euroc_imu_reader.h"
-#include "types/frame.h"
 #include "frontend/detection/detector_factory.h"
+#include "frontend/selection/selector_factory.h"
 
 VIOPipeline::VIOPipeline(
     std::unique_ptr<CameraReader> camera_reader,
@@ -30,5 +30,9 @@ VIOPipeline make_pipeline(const Config& config) {
     return VIOPipeline(
         std::make_unique<EurocCameraReader>(config.dataset_path),
         std::make_unique<EurocImuReader>(config.dataset_path),
-        Frontend(make_detector(config.frontend_config.detector_config)));
+        Frontend(
+            make_detector(config.frontend_config.detector_config),
+            make_selector(config.frontend_config.selector_config)
+        )
+    );
 }

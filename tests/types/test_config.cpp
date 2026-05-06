@@ -9,7 +9,16 @@ data:
   dataset_path: "/some/path"
 pipeline:
   frontend:
-    detector: { type: fast, threshold: 20 }
+    detector:
+      type: fast
+      threshold: 20
+    selector:
+      type: bucketer
+      image_width: 160
+      image_height: 160
+      cell_width: 20
+      cell_height: 20
+      keypoints_per_cell: 100
 )";
 
 } // namespace

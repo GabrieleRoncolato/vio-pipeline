@@ -8,3 +8,10 @@ pipeline:
       type: fast
       max_features: 200
       threshold: 20
+    selector:
+      type: bucketer
+      image_width: 160
+      image_height: 160
+      cell_width: 20
+      cell_height: 20
+      keypoints_per_cell: 20

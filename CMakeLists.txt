@@ -33,6 +33,8 @@ add_library(vio_frontend
     src/frontend/frontend.cpp
     src/frontend/detection/detector_factory.cpp
     src/frontend/detection/fast_detector.cpp
+    src/frontend/selection/selector_factory.cpp
+    src/frontend/selection/bucketer_selector.cpp
 )
 target_include_directories(vio_frontend PUBLIC src)
 target_link_libraries(vio_frontend PUBLIC vio_types ${OpenCV_LIBS})

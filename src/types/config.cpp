@@ -23,12 +23,28 @@ DetectorConfig parse_detector(cv::FileNode node){
     auto type = read_required<std::string>(node, "type");
 
     if(type == "fast"){
-        FastConfig c;
-        c.threshold    = read_required<int>(node, "threshold");
-        return c;
+        FastConfig config;
+        config.threshold = read_required<int>(node, "threshold");
+        return config;
     }
 
     throw std::runtime_error("Unknown detector type: " + type);
+}
+
+SelectorConfig parse_selector(cv::FileNode node){
+    auto type = read_required<std::string>(node, "type");
+
+    if(type == "bucketer"){
+        BucketerConfig config;
+        config.image_width = read_required<int>(node, "image_width");
+        config.image_height = read_required<int>(node, "image_height");
+        config.cell_width = read_required<int>(node, "cell_width");
+        config.cell_height = read_required<int>(node, "cell_height");
+        config.keypoints_per_cell = read_required<int>(node, "keypoints_per_cell");
+        return config;
+    }
+
+    throw std::runtime_error("Unknown selector type: " + type);
 }
 
 FrontendConfig parse_frontend(cv::FileNode node){
@@ -36,6 +52,8 @@ FrontendConfig parse_frontend(cv::FileNode node){
     
     auto detector = read_section(node, "detector");
     frontend_config.detector_config = parse_detector(detector);
+    auto selector = read_section(node, "selector");
+    frontend_config.selector_config = parse_selector(selector);
     
     return frontend_config;
 }

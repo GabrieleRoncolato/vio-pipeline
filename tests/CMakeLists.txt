@@ -28,3 +28,11 @@ add_vio_test(test_detector_factory
     frontend/detection/test_detector_factory.cpp
     vio_frontend
 )
+add_vio_test(test_selector_factory
+    frontend/selection/test_selector_factory.cpp
+    vio_frontend
+)
+add_vio_test(test_bucketer_selector
+    frontend/selection/test_bucketer_selector.cpp
+    vio_frontend
+)

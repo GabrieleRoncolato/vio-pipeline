@@ -9,8 +9,19 @@ struct FastConfig {
 
 using DetectorConfig = std::variant<FastConfig>;
 
+struct BucketerConfig {
+    int image_width;
+    int image_height;
+    int cell_width;
+    int cell_height;
+    int keypoints_per_cell;
+};
+
+using SelectorConfig = std::variant<BucketerConfig>;
+
 struct FrontendConfig {
     DetectorConfig detector_config;
+    SelectorConfig selector_config;
 };
 
 struct Config {
